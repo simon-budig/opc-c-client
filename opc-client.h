@@ -1,12 +1,6 @@
 #ifndef __OPC_CLIENT_H__
 #define __OPC_CLIENT_H__
 
-#define MAX(x, y) ((x) > (y) ? (x) : (y))
-#define MIN(x, y) ((x) < (y) ? (x) : (y))
-#define CLAMP(v, lo, hi) MAX (MIN ((v), (hi)), (lo))
-
-#define EFFECT_TIME 30.0
-
 struct _opc_client
 {
   int                 fd;
