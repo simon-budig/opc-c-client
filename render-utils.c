@@ -2,12 +2,12 @@
 
 #include "render-utils.h"
 
-double 
-euclid_3d(double x, 
-          double y, 
-	  double z) 
+double
+euclid_3d (double x,
+           double y,
+	   double z)
 {
-	return sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+	return sqrt (x * x + y * y + z * z);
 }
 
 void
@@ -55,6 +55,98 @@ render_pixel (double *framebuffer,
 
   framebuffer[(((x * 8) + y) * 8 + z) * 3 + 2] *= 1.0   - alpha;
   framebuffer[(((x * 8) + y) * 8 + z) * 3 + 2] += blue  * alpha;
+}
+
+
+void
+interpolate_pixel (double *fb,
+                   double x,
+                   double y,
+                   double z,
+                   double red,
+                   double green,
+                   double blue,
+                   double alpha)
+{
+  render_pixel (fb,
+                (int) x,
+                (int) y,
+                (int) z,
+                red, green, blue,
+                alpha *
+                (1.0 - (x - (int) x)) *
+                (1.0 - (y - (int) y)) *
+                (1.0 - (z - (int) z)));
+
+  render_pixel (fb,
+                1 + (int) x,
+                (int) y,
+                (int) z,
+                red, green, blue,
+                alpha *
+                ((x - (int) x)) *
+                (1.0 - (y - (int) y)) *
+                (1.0 - (z - (int) z)));
+
+  render_pixel (fb,
+                (int) x,
+                1 + (int) y,
+                (int) z,
+                red, green, blue,
+                alpha *
+                (1.0 - (x - (int) x)) *
+                ((y - (int) y)) *
+                (1.0 - (z - (int) z)));
+
+  render_pixel (fb,
+                (int) x,
+                (int) y,
+                1 + (int) z,
+                red, green, blue,
+                alpha *
+                (1.0 - (x - (int) x)) *
+                (1.0 - (y - (int) y)) *
+                ((z - (int) z)));
+
+  render_pixel (fb,
+                (int) x,
+                1 + (int) y,
+                1 + (int) z,
+                red, green, blue,
+                alpha *
+                (1.0 - (x - (int) x)) *
+                ((y - (int) y)) *
+                ((z - (int) z)));
+
+  render_pixel (fb,
+                1 + (int) x,
+                (int) y,
+                1 + (int) z,
+                red, green, blue,
+                alpha *
+                ((x - (int) x)) *
+                (1.0 - (y - (int) y)) *
+                ((z - (int) z)));
+
+  render_pixel (fb,
+                1 + (int) x,
+                1 + (int) y,
+                (int) z,
+                red, green, blue,
+                alpha *
+                ((x - (int) x)) *
+                ((y - (int) y)) *
+                (1.0 - (z - (int) z)));
+
+  render_pixel (fb,
+                1 + (int) x,
+                1 + (int) y,
+                1 + (int) z,
+                red, green, blue,
+                alpha *
+                ((x - (int) x)) *
+                ((y - (int) y)) *
+                ((z - (int) z)));
 }
 
 

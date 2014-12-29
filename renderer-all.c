@@ -85,7 +85,7 @@ mode_lava_balloon (double *fb,
 
 void
 mode_random_blips (double *fb,
-                   double t)
+                   double  t)
 {
   int x, y, z, i;
   framebuffer_dim (fb, 0.99);
@@ -102,9 +102,9 @@ mode_random_blips (double *fb,
 }
 
 
-void 
+void
 mode_astern (double *framebuffer,
-	     double t)
+             double  t)
 { 
   static int wait_counter = -1;  // wait when finished
   static int finished_astern=0;  //
@@ -141,11 +141,77 @@ mode_astern (double *framebuffer,
    }
 }
 
-void 
+void
 mode_ball_wave (double *fb,
-		 double t)
+                double  t)
 {
-  render_ball(t,fb);  
+  render_ball (t,fb);
+}
+
+
+void
+mode_rect_flip (double *fb,
+                double  t)
+{
+  int i, j;
+  double x, y, z, dt, sdt, cdt;
+  int pos;
+
+  pos = (int) (fmod (t, 6.0 * 2.0) / 2.0);
+  dt  = fmod (t, 2.0) / 2.0;
+ 
+  dt = pow (dt, 3);
+
+  dt = dt * M_PI / 2;
+  cdt = cos (dt);
+  sdt = sin (dt);
+
+  framebuffer_set (fb, 0.2, 0.0, 0.0);
+
+  for (i = 0; i < 8; i++)
+    {
+      for (j = 0; j < 8; j++)
+        {
+          switch (pos)
+            {
+              case 0:
+                x = 7.0 - i * cdt;
+                y = j;
+                z = 7.0 - i * sdt;
+                break;
+              case 1:
+                x = 7.0 - i * sdt;
+                y = 0.0 + i * cdt;
+                z = j;
+                break;
+              case 2:
+                x = j;
+                y = 0.0 + i * sdt;
+                z = 0.0 + i * cdt;
+                break;
+              case 3:
+                x = 0.0 + i * cdt;
+                y = j;
+                z = 0.0 + i * sdt;
+                break;
+              case 4:
+                x = 0.0 + i * sdt;
+                y = 7.0 - i * cdt;
+                z = j;
+                break;
+              case 5:
+                x = j;
+                y = 7.0 - i * sdt;
+                z = 7.0 - i * cdt;
+                break;
+            }
+
+          render_blob (fb,
+                       x * 0.25, y * 0.25, z * 0.25,
+                       1.0, 1.0, 0.0,
+                       0.25, 1.0);
+        }
+    }
 }
 
 
@@ -161,10 +227,11 @@ main (int   argc,
   int have_flip = 0;
   RenderFunc modeptrs[] =
     {
-      mode_astern,	
+      mode_astern,
       mode_lava_balloon,
       mode_jumping_pixels,
       mode_random_blips,
+      mode_rect_flip,
       mode_ball_wave,
     };
 
@@ -178,6 +245,11 @@ main (int   argc,
                            8 * 8 * 8 * 3,
                            framebuffer);
 
+  if (!client)
+    {
+      fprintf (stderr, "can't open client\n");
+      exit (1);
+    }
   opc_client_connect (client);
 
   while (1)

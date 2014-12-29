@@ -18,6 +18,11 @@ void render_pixel      (double *framebuffer,
                         double red, double green, double blue,
                         double alpha);
 
+void interpolate_pixel (double *framebuffer,
+                        double x, double y, double z,
+                        double red, double green, double blue,
+                        double alpha);
+
 void render_blob       (double *framebuffer,
                         double cx, double cy, double cz,
                         double red, double green, double blue,
