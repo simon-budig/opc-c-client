@@ -1,19 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <signal.h>
-#include <netdb.h>
 #include <math.h>
+#include <netinet/in.h>
 #include <sys/time.h>
 
 #include "opc-client.h"
 #include "render-utils.h"
 
-#define EFFECT_TIME 10.0
+#define EFFECT_TIME 30.0
 
 typedef void (*RenderFunc) (double *, double);
 
@@ -30,7 +25,7 @@ mode_jumping_pixels (double *fb,
       offsets = malloc (64 * sizeof (double));
       for (i = 0; i < 64; i++)
         {
-          offsets[i] = drand48 () * 7;
+          offsets[i] = drand48 () * 7 - 3.5;
         }
     }
 
@@ -42,7 +37,7 @@ mode_jumping_pixels (double *fb,
         {
           double z;
 
-          z = CLAMP (fmod (t * 6, 28.0) + offsets[x * 8 + y] - 14.0, 0.0, 6.99);
+          z = CLAMP (sin (t) * 7 + offsets[x * 8 + y] + 3.5 , 0.0, 6.99);
 
           render_pixel (fb, x, y, 1 + (int) z,
                         1.0, 1.0, 1.0, z - (int) z);
