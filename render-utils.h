@@ -37,3 +37,8 @@ void framebuffer_merge (double *fb,
                         double  alpha);
 
 
+double 
+euclid_3d(double x, 
+          double y, 
+	  double z) ;
+

@@ -2,6 +2,14 @@
 
 #include "render-utils.h"
 
+double 
+euclid_3d(double x, 
+          double y, 
+	  double z) 
+{
+	return sqrt(pow(x,2) + pow(y,2) + pow(z,2));
+}
+
 void
 pixel_set (double *framebuffer,
            int x,

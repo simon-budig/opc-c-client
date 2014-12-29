@@ -1,7 +1,6 @@
-
 #include "opc-client.h"
 #include "render-utils.h"
-#include "renderer_ball.h"
+#include "renderer_astern.h"
 
 int
 main (int   argc,
@@ -10,6 +9,8 @@ main (int   argc,
   double *framebuffer;
   OpcClient *client;
   struct timeval tv;
+  int finished = 0;
+
 
   framebuffer = calloc (8 * 8 * 8 * 3, sizeof (double));
 
@@ -19,25 +20,30 @@ main (int   argc,
 
   opc_client_connect (client);
 
-  while (1)
+  while(1) {
+  framebuffer_set(framebuffer, 0.0,0.0,0.0);
+  init();
+  finished = 0;
+
+  while (!finished)
     {
+      
       double t;
       gettimeofday (&tv, NULL);
       t = tv.tv_sec * 1.0 + tv.tv_usec / 1000000.0;
 
-//      render_wave (t, framebuffer);
-      // framebuffer_set (framebuffer, 0.0, 0.0, 0.3);
- /*     render_blob (framebuffer,
-                   0.875, 0.875, fmod (t, 4.0) - 1.0,
-                   1.0, 1.0, 0.0,
-                   0.75, 1.0);
- */
- 	render_ball(t, framebuffer);
+ 	render_map(framebuffer);
+	finished = astern_step();
 
       opc_client_write (client, 0, 0);
-      usleep (50 * 1000);  /* 50ms */
+      usleep (100 * 1000);  /* 50ms */
     }
-
+   
+  render_path(framebuffer);
+  opc_client_write (client, 0, 0);
+  sleep(2);
+  destruct();
+  }
   opc_client_shutdown (client);
 
   return 0;
