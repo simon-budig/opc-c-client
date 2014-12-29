@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <math.h>
 #include <netinet/in.h>
@@ -153,8 +154,9 @@ void
 mode_rect_flip (double *fb,
                 double  t)
 {
-  int i, j;
-  double x, y, z, dt, sdt, cdt;
+  int x, y, z;
+  double dt, sdt, cdt;
+  double nx, ny, nz, a;
   int pos;
 
   pos = (int) (fmod (t, 6.0 * 2.0) / 2.0);
@@ -166,50 +168,91 @@ mode_rect_flip (double *fb,
   cdt = cos (dt);
   sdt = sin (dt);
 
+  switch (pos)
+    {
+      case 0:
+        nx = + sdt;
+        ny = 0;
+        nz = - cdt;
+        a = 7.0 * (nx + nz);
+        break;
+      case 1:
+        nx = + cdt;
+        ny = + sdt;
+        nz = 0;
+        a = 7.0 * nx;
+        break;
+      case 2:
+        nx = 0;
+        ny = + cdt;
+        nz = - sdt;
+        a = 0.0;
+        break;
+      case 3:
+        nx = - sdt;
+        ny = 0;
+        nz = + cdt;
+        a = 0.0;
+        break;
+      case 4:
+        nx = - cdt;
+        ny = - sdt;
+        nz = 0;
+        a = 7.0 * ny;
+        break;
+      case 5:
+        nx = 0;
+        ny = - cdt;
+        nz = + sdt;
+        a = 7.0 * (ny + nz);
+        break;
+      default:
+        break;
+    }
+
   framebuffer_set (fb, 0.2, 0.0, 0.0);
 
-  for (i = 0; i < 8; i++)
+  for (x = 0; x < 7.99; x++)
     {
-      for (j = 0; j < 8; j++)
+      for (y = 0; y < 7.99; y++)
         {
-          switch (pos)
+          for (z = 0; z < 7.99; z++)
             {
-              case 0:
-                x = 7.0 - i * cdt;
-                y = j;
-                z = 7.0 - i * sdt;
-                break;
-              case 1:
-                x = 7.0 - i * sdt;
-                y = 0.0 + i * cdt;
-                z = j;
-                break;
-              case 2:
-                x = j;
-                y = 0.0 + i * sdt;
-                z = 0.0 + i * cdt;
-                break;
-              case 3:
-                x = 0.0 + i * cdt;
-                y = j;
-                z = 0.0 + i * sdt;
-                break;
-              case 4:
-                x = 0.0 + i * sdt;
-                y = 7.0 - i * cdt;
-                z = j;
-                break;
-              case 5:
-                x = j;
-                y = 7.0 - i * sdt;
-                z = 7.0 - i * cdt;
-                break;
-            }
+              double d, len;
 
-          render_blob (fb,
-                       x * 0.25, y * 0.25, z * 0.25,
-                       1.0, 1.0, 0.0,
-                       0.25, 1.0);
+              d = fabs (nx * x + ny * y + nz * z - a);
+
+              switch (pos)
+                {
+                  case 0:
+                    len = sqrt ((7.0 - x) * (7.0 - x) + (7.0 - z) * (7.0 - z));
+                    break;
+                  case 1:
+                    len = sqrt ((7.0 - x) * (7.0 - x) + y * y);
+                    break;
+                  case 2:
+                    len = sqrt (y * y + z * z);
+                    break;
+                  case 3:
+                    len = sqrt (x * x + z * z);
+                    break;
+                  case 4:
+                    len = sqrt (x * x + (7.0 - y) * (7.0 - y));
+                    break;
+                  case 5:
+                    len = sqrt ((7.0 - y) * (7.0 - y) + (7.0 - z) * (7.0 - z));
+                    break;
+                  default:
+                    len = 0;
+                    break;
+                }
+
+              if (d < 0.7)
+                {
+                  len = 1.0 - CLAMP (len - 7.0, 0.0, 1.0);
+                  render_pixel (fb, x, y, z, 1.0, 0.8, 0.0, len * (1.0 - d));
+                }
+            }
         }
     }
 }
@@ -262,11 +305,16 @@ main (int   argc,
 
       if (dt < 1.0)
         {
+          if (have_flip == 1)
+            {
+              memset (effect2, 0, sizeof (double) * 8 * 8 * 8 * 3);
+              have_flip = 0;
+            }
+
           modeptrs[(mode + 0) % num_modes] (effect1, t);
           modeptrs[(mode + 1) % num_modes] (effect2, t);
 
           framebuffer_merge (framebuffer, effect1, effect2, dt);
-          have_flip = 0;
         }
       else
         {
