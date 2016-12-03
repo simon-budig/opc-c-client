@@ -24,9 +24,10 @@ mode_import_png (double *fb,
   double *pixels, *cfp;
   int width, height, rowstride;
   int x, y;
-  double x1, y1;
+  double x1, y1, x2, y2, angle;
 
-  if (read_png_file ("swirl.png", &width, &height, &rowstride, &pixels) < 0)
+  if (read_png_file ("lauftext-balldachin.png",
+                     &width, &height, &rowstride, &pixels) < 0)
     {
       fprintf (stderr, "failed to read PNG\n");
       return;
@@ -46,8 +47,23 @@ mode_import_png (double *fb,
 
           x1 = 16 + x - ((y+1) / 2);
           y1 = 30 - (y / 2) - x;
-          x1 += cos (fmod (t, M_PI * 2)) * 5;
-          y1 += sin (fmod (t, M_PI * 2)) * 5;
+
+          x1 -= 16;
+          y1 -= 16;
+
+          y1 += 3;
+
+          angle = fmod (t / 16, 2 * M_PI);
+          x2 = cos (angle) * x1 - sin (angle) * y1;
+          y2 = sin (angle) * x1 + cos (angle) * y1;
+          x1 = x2;
+          y1 = y2;
+
+          x1 += fmod (t, 3 * EFFECT_TIME) * (width + 32) / (3 * EFFECT_TIME);
+          x1 -= 32;
+
+          x1 += 16;
+          y1 += 16;
 
           sample_buffer (pixels, width, height, rowstride, x1, y1, cfp);
         }
@@ -146,40 +162,48 @@ mode_random_blips (double *fb,
 void
 mode_astern (double *framebuffer,
              double  t)
-{ 
-  static int wait_counter = -1;  // wait when finished
-  static int finished_astern=0;  //
-  static int initiated_astern=0; 
-  
-  if(!initiated_astern) {
-	  initiated_astern = 1;
-	  init_astern();
-  }
+{
+  static int wait_counter = -1;    // wait when finished
+  static int finished_astern = 0;  //
+  static int initiated_astern = 0;
+
+  if (!initiated_astern)
+    {
+      initiated_astern = 1;
+      init_astern ();
+    }
+
   if (!finished_astern)
     {
- 	render_map(framebuffer);
-	finished_astern = astern_step();
-	if(finished_astern < 0) {
-		// fail, no route found
-				
-		wait_counter = 0;
-		framebuffer_set(framebuffer, 1.0, 1.0, 1.0);
-	}
+      render_map (framebuffer);
+      finished_astern = astern_step ();
+      if (finished_astern < 0)
+        {
+          // fail, no route found
 
-    }
-   else {
-     if(wait_counter < 0) 
-	     wait_counter = 9;
-     if(wait_counter > 0) {
-       render_path(framebuffer);
-       wait_counter--;	     
-     } else { // == 0
-       destruct_astern();
-       initiated_astern = 0;
-       finished_astern = 0;
-       wait_counter = -1;
+          wait_counter = 0;
+          framebuffer_set (framebuffer, 1.0, 1.0, 1.0);
+        }
      }
-   }
+   else
+     {
+       if (wait_counter < 0)
+         wait_counter = 9;
+
+       if (wait_counter > 0)
+         {
+           render_path (framebuffer);
+           wait_counter--;
+         }
+       else
+         {
+           // == 0
+           destruct_astern ();
+           initiated_astern = 0;
+           finished_astern = 0;
+           wait_counter = -1;
+         }
+     }
 }
 
 void
@@ -311,11 +335,11 @@ main (int   argc,
   RenderFunc modeptrs[] =
     {
       // mode_astern,
-      // mode_lava_balloon,
+      mode_lava_balloon,
       mode_jumping_pixels,
       mode_import_png,
-      // mode_random_blips,
-      // mode_rect_flip,
+      mode_random_blips,
+      mode_rect_flip,
       // mode_ball_wave,
     };
 
