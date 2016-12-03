@@ -367,3 +367,61 @@ read_png_file (char    *file_name,
   return 0;
 }
 
+
+void
+sample_buffer (double  *buffer,
+               int      width,
+               int      height,
+               int      rowstride,
+               double   x,
+               double   y,
+               double  *ret_pixel)
+{
+  int x0, y0;
+  double dx, dy;
+
+  x0 = floor (x);
+  y0 = floor (y);
+  dx = x - x0;
+  dy = y - y0;
+
+  ret_pixel[0] = 0.0;
+  ret_pixel[1] = 0.0;
+  ret_pixel[2] = 0.0;
+
+  if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height)
+    {
+      ret_pixel[0] += (1.0 - dx) * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 0];
+      ret_pixel[1] += (1.0 - dx) * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 1];
+      ret_pixel[2] += (1.0 - dx) * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 2];
+    }
+
+  x0 += 1;
+
+  if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height)
+    {
+      ret_pixel[0] += dx * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 0];
+      ret_pixel[1] += dx * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 1];
+      ret_pixel[2] += dx * (1.0 - dy) * buffer[y0 * rowstride + x0 * 3 + 2];
+    }
+
+  x0 -= 1;
+  y0 += 1;
+
+  if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height)
+    {
+      ret_pixel[0] += (1.0 - dx) * dy * buffer[y0 * rowstride + x0 * 3 + 0];
+      ret_pixel[1] += (1.0 - dx) * dy * buffer[y0 * rowstride + x0 * 3 + 1];
+      ret_pixel[2] += (1.0 - dx) * dy * buffer[y0 * rowstride + x0 * 3 + 2];
+    }
+
+  x0 += 1;
+
+  if (x0 >= 0 && x0 < width && y0 >= 0 && y0 < height)
+    {
+      ret_pixel[0] += dx * dy * buffer[y0 * rowstride + x0 * 3 + 0];
+      ret_pixel[1] += dx * dy * buffer[y0 * rowstride + x0 * 3 + 1];
+      ret_pixel[2] += dx * dy * buffer[y0 * rowstride + x0 * 3 + 2];
+    }
+}
+

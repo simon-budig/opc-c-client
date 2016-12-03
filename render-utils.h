@@ -51,3 +51,11 @@ int read_png_file      (char    *file_name,
                         int     *rowstride,
                         double **pixels);
 
+void sample_buffer     (double  *buffer,
+                        int      width,
+                        int      height,
+                        int      rowstride,
+                        double   x,
+                        double   y,
+                        double  *ret_pixel);
+

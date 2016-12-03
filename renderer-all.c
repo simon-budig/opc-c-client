@@ -21,11 +21,12 @@ void
 mode_import_png (double *fb,
                  double  t)
 {
-  double *pixels, *cp;
+  double *pixels, *cfp;
   int width, height, rowstride;
-  int x, y, x1, y1;
+  int x, y;
+  double x1, y1;
 
-  if (read_png_file ("diag-hasi2.png", &width, &height, &rowstride, &pixels) < 0)
+  if (read_png_file ("swirl.png", &width, &height, &rowstride, &pixels) < 0)
     {
       fprintf (stderr, "failed to read PNG\n");
       return;
@@ -41,13 +42,14 @@ mode_import_png (double *fb,
     {
       for (x = 0; x < 16; x++)
         {
+          cfp = fb + (y * 16 + x) * 3;
+
           x1 = 16 + x - ((y+1) / 2);
           y1 = 30 - (y / 2) - x;
+          x1 += cos (fmod (t, M_PI * 2)) * 5;
+          y1 += sin (fmod (t, M_PI * 2)) * 5;
 
-          cp = pixels + y1 * rowstride + x1 * 3;
-          fb[(y * 16 + x) * 3 + 0] = cp[0];
-          fb[(y * 16 + x) * 3 + 1] = cp[1];
-          fb[(y * 16 + x) * 3 + 2] = cp[2];
+          sample_buffer (pixels, width, height, rowstride, x1, y1, cfp);
         }
     }
 
@@ -199,7 +201,7 @@ mode_rect_flip (double *fb,
 
   pos = (int) (fmod (t, 6.0 * 2.0) / 2.0);
   dt  = fmod (t, 2.0) / 2.0;
- 
+
   dt = pow (dt, 3);
 
   dt = dt * M_PI / 2;
