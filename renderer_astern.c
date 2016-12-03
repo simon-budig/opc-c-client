@@ -168,7 +168,6 @@ void setRandomWall(int height, int width, char ortho)
 
 void init_astern() {
   double x,y,z;
-  int i;
   start.d = euclid_3d(start.x - dest.x, start.y - dest.y, start.z - dest.z);
   start.pc = 0;
   set = malloc(sizeof(struct Node*) * NUM);

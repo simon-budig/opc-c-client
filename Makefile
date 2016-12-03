@@ -1,10 +1,10 @@
 all: renderer-all 
 
 renderer-simon: opc-client.o render-utils.o renderer-simon.c
-	gcc -Wall -g -lm -o renderer-simon opc-client.o render-utils.o renderer-simon.c
+	gcc -Wall -g -lm `pkg-config --libs --cflags libpng` -o renderer-simon opc-client.o render-utils.o renderer-simon.c
 
 renderer-all: renderer-all.c opc-client.o render-utils.o renderer_astern.o renderer_ball.o
-	gcc -Wall -g -lm -o $@  $^
+	gcc -Wall -g -lm `pkg-config --libs --cflags libpng` -o $@  $^
 
 renderer-fun: renderer-fun.c
 	gcc -Wall -g -lm -o renderer-fun renderer-fun.c 

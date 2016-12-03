@@ -18,6 +18,44 @@ typedef void (*RenderFunc) (double *, double);
 
 
 void
+mode_import_png (double *fb,
+                 double  t)
+{
+  double *pixels, *cp;
+  int width, height, rowstride;
+  int x, y, x1, y1;
+
+  if (read_png_file ("diag-hasi2.png", &width, &height, &rowstride, &pixels) < 0)
+    {
+      fprintf (stderr, "failed to read PNG\n");
+      return;
+    }
+
+  if (width < 32 || height < 31)
+    {
+      fprintf (stderr, "PNG not big enough\n");
+      return;
+    }
+
+  for (y = 0; y < 32; y++)
+    {
+      for (x = 0; x < 16; x++)
+        {
+          x1 = 16 + x - ((y+1) / 2);
+          y1 = 30 - (y / 2) - x;
+
+          cp = pixels + y1 * rowstride + x1 * 3;
+          fb[(y * 16 + x) * 3 + 0] = cp[0];
+          fb[(y * 16 + x) * 3 + 1] = cp[1];
+          fb[(y * 16 + x) * 3 + 2] = cp[2];
+        }
+    }
+
+  free (pixels);
+}
+
+
+void
 mode_jumping_pixels (double *fb,
                      double  t)
 {
@@ -270,12 +308,13 @@ main (int   argc,
   int have_flip = 0;
   RenderFunc modeptrs[] =
     {
-      mode_astern,
-      mode_lava_balloon,
+      // mode_astern,
+      // mode_lava_balloon,
       mode_jumping_pixels,
-      mode_random_blips,
-      mode_rect_flip,
-      mode_ball_wave,
+      mode_import_png,
+      // mode_random_blips,
+      // mode_rect_flip,
+      // mode_ball_wave,
     };
 
   int num_modes = sizeof (modeptrs) / sizeof (modeptrs[0]);
@@ -284,7 +323,7 @@ main (int   argc,
   effect1 = calloc (8 * 8 * 8 * 3, sizeof (double));
   effect2 = calloc (8 * 8 * 8 * 3, sizeof (double));
 
-  client = opc_client_new ("localhost:7890", 7890,
+  client = opc_client_new ("balldachin.hasi:7890", 7890,
                            8 * 8 * 8 * 3,
                            framebuffer);
 

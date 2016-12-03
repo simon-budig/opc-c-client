@@ -1,14 +1,12 @@
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
 #include <math.h>
 
-#include "render-utils.h"
+#include <png.h>
 
-double
-euclid_3d (double x,
-           double y,
-	   double z)
-{
-	return sqrt (x * x + y * y + z * z);
-}
+#include "render-utils.h"
 
 void
 pixel_set (double *framebuffer,
@@ -234,4 +232,138 @@ framebuffer_merge (double *fb,
     }
 }
 
+
+double
+euclid_3d (double x,
+           double y,
+           double z)
+{
+	return sqrt (x * x + y * y + z * z);
+}
+
+
+int
+read_png_file (char    *file_name,
+               int     *ret_width,
+               int     *ret_height,
+               int     *ret_rowstride,
+               double **ret_pixels)
+{
+  png_byte color_type;
+  png_byte bit_depth;
+
+  png_structp png_ptr;
+  png_infop info_ptr;
+  png_bytep *row_pointers;
+  int x, y, width, height, rowstride;
+  uint8_t *pngpixels;
+  double *pixels;
+
+  uint8_t header[8];    // 8 is the maximum size that can be checked
+  FILE *fp;
+
+  /* open file and test for it being a png */
+  fp = fopen (file_name, "rb");
+  if (!fp)
+    {
+      fprintf (stderr, "File %s could not be opened for reading\n",
+               file_name);
+      return -ENOENT;
+    }
+
+  if (fread (header, 1, 8, fp) < 8 ||
+      png_sig_cmp (header, 0, 8))
+    {
+      fprintf (stderr, "File %s is not recognized as a PNG file\n",
+               file_name);
+      return -EINVAL;
+    }
+
+  /* initialize stuff */
+  png_ptr = png_create_read_struct (PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+
+  if (!png_ptr)
+    {
+      fprintf (stderr, "png_create_read_struct failed\n");
+      return -ENOMEM;
+    }
+
+  info_ptr = png_create_info_struct (png_ptr);
+  if (!info_ptr)
+    {
+      fprintf (stderr, "png_create_info_struct failed\n");
+      return -ENOMEM;
+    }
+
+  if (setjmp (png_jmpbuf (png_ptr)))
+    {
+      fprintf (stderr, "Error during init_io\n");
+      return -ENOMEM;
+    }
+
+  png_init_io (png_ptr, fp);
+  png_set_sig_bytes (png_ptr, 8);
+
+  png_read_info (png_ptr, info_ptr);
+
+  width = png_get_image_width (png_ptr, info_ptr);
+  height = png_get_image_height (png_ptr, info_ptr);
+  color_type = png_get_color_type (png_ptr, info_ptr);
+  bit_depth = png_get_bit_depth (png_ptr, info_ptr);
+
+  if (color_type != PNG_COLOR_TYPE_RGB || bit_depth != 8)
+    {
+      fprintf (stderr, "wrong PNG type\n");
+      return -EINVAL;
+    }
+
+  png_set_interlace_handling (png_ptr);
+  png_read_update_info (png_ptr, info_ptr);
+
+  /* read file */
+  if (setjmp (png_jmpbuf (png_ptr)))
+    {
+      fprintf (stderr, "Error during read_image\n");
+      return -EIO;
+    }
+
+  rowstride = png_get_rowbytes (png_ptr, info_ptr);
+  pngpixels = malloc (rowstride * height);
+
+  row_pointers = malloc (sizeof (png_bytep) * height);
+  for (y = 0; y < height; y++)
+    {
+      row_pointers[y] = pngpixels + y * rowstride;
+    }
+
+  png_read_image (png_ptr, row_pointers);
+
+  free (row_pointers);
+  fclose (fp);
+
+  pixels = malloc (sizeof (double) * width * height * 3);
+
+  for (y = 0; y < height; y++)
+    {
+      for (x = 0; x < width; x++)
+        {
+          // fprintf (stderr, "x: %d, y: %d\n", x, y);
+          pixels[(y * width + x) * 3 + 0] =
+              ((double) pngpixels[y * rowstride + x * 3 + 0]) / 255.0;
+          pixels[(y * width + x) * 3 + 1] =
+              ((double) pngpixels[y * rowstride + x * 3 + 1]) / 255.0;
+          pixels[(y * width + x) * 3 + 2] =
+              ((double) pngpixels[y * rowstride + x * 3 + 2]) / 255.0;
+        }
+    }
+
+  free (pngpixels);
+
+  *ret_width = width;
+  *ret_height = height;
+  *ret_rowstride = 3 * width;
+  *ret_pixels = pixels;
+
+  return 0;
+}
 
