@@ -74,6 +74,40 @@ mode_import_png (double *fb,
 
 
 void
+mode_radar_scan (double *fb,
+                 double  t)
+{
+  int i;
+
+  for (i = 0; i < 512; i++)
+    {
+      double x, y, phi, r, alpha;
+
+      x = (i % 32) / 2.0           - 7.75;
+      y = (i / 32) + (i % 2) * 0.5 - 7.75;
+
+      phi = fmod (M_PI * 2 + atan2 (y, x) + t, M_PI * 2);
+      r = hypot (x, y);
+
+      if (r < 8.5)
+        {
+          alpha = r < 7.5 ? 1.0 : 8.5 - r;
+          phi = MAX (2.0 - phi, 0.0) / 2.0;
+          fb[i*3 + 0] = 1.0 * phi * alpha;;
+          fb[i*3 + 1] = (0.4 + 0.6 * phi) * alpha;
+          fb[i*3 + 2] = 1.0 * phi * alpha;
+        }
+      else
+        {
+          fb[i*3 + 0] = 0;
+          fb[i*3 + 1] = 0;
+          fb[i*3 + 2] = 0;
+        }
+    }
+}
+
+
+void
 mode_jumping_pixels (double *fb,
                      double  t)
 {
@@ -340,7 +374,8 @@ main (int   argc,
       mode_import_png,
       mode_random_blips,
       mode_rect_flip,
-      // mode_ball_wave,
+      mode_ball_wave,
+      mode_radar_scan,
     };
 
   int num_modes = sizeof (modeptrs) / sizeof (modeptrs[0]);
@@ -349,7 +384,8 @@ main (int   argc,
   effect1 = calloc (8 * 8 * 8 * 3, sizeof (double));
   effect2 = calloc (8 * 8 * 8 * 3, sizeof (double));
 
-  client = opc_client_new ("balldachin.hasi:7890", 7890,
+  client = opc_client_new (argc > 1 ? argv[1] : "localhost:7890", 15163,
+                           // "balldachin.hasi:7890", 7890,
                            8 * 8 * 8 * 3,
                            framebuffer);
 
@@ -359,6 +395,17 @@ main (int   argc,
       exit (1);
     }
   opc_client_connect (client);
+
+  if (argc > 2)
+    {
+      int mode = atoi (argv[2]);
+
+      if (mode < num_modes)
+        {
+          modeptrs[0] = modeptrs[mode];
+          num_modes = 1;
+        }
+    }
 
   while (1)
     {
