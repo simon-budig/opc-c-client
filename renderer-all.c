@@ -26,7 +26,7 @@ mode_import_png (double *fb,
   int x, y;
   double x1, y1, x2, y2, angle;
 
-  if (read_png_file ("lauftext-balldachin.png",
+  if (read_png_file ("swirl.png",
                      &width, &height, &rowstride, &pixels) < 0)
     {
       fprintf (stderr, "failed to read PNG\n");
@@ -39,14 +39,15 @@ mode_import_png (double *fb,
       return;
     }
 
-  for (y = 0; y < 32; y++)
+  for (y = 0; y < 16; y++)
     {
-      for (x = 0; x < 16; x++)
+      for (x = 0; x < 32; x++)
         {
-          cfp = fb + (y * 16 + x) * 3;
+          cfp = fb + (y * 32 + x) * 3;
 
-          x1 = 16 + x - ((y+1) / 2);
-          y1 = 30 - (y / 2) - x;
+#if 0
+          x1 = x * 0.5;
+          y1 = y + (x % 2) * 0.5;
 
           x1 -= 16;
           y1 -= 16;
@@ -64,6 +65,10 @@ mode_import_png (double *fb,
 
           x1 += 16;
           y1 += 16;
+#else
+          x1 = 15 + (x + 0) / 2 - y;
+          y1 = 30 - (x + 1) / 2 - y;
+#endif
 
           sample_buffer (pixels, width, height, rowstride, x1, y1, cfp);
         }
@@ -384,7 +389,7 @@ main (int   argc,
   effect1 = calloc (8 * 8 * 8 * 3, sizeof (double));
   effect2 = calloc (8 * 8 * 8 * 3, sizeof (double));
 
-  client = opc_client_new (argc > 1 ? argv[1] : "localhost:7890", 15163,
+  client = opc_client_new (argc > 1 ? argv[1] : "127.0.0.1:7890", 15163,
                            // "balldachin.hasi:7890", 7890,
                            8 * 8 * 8 * 3,
                            framebuffer);
