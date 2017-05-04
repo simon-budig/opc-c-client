@@ -4,7 +4,7 @@
 struct _opc_client
 {
   int                 fd;
-  struct sockaddr_in  address;
+  struct addrinfo    *addresses;
   int                 fb_size;
   double             *framebuffer;
 };

@@ -19,7 +19,6 @@ opc_client_new (char   *hostport,
                 double *framebuffer)
 {
   char *host, *colon;
-  int port;
   int success = 0;
 
   OpcClient *client = calloc (1, sizeof (OpcClient));
@@ -30,32 +29,20 @@ opc_client_new (char   *hostport,
 
   host = strdup (hostport);
   colon = strchr (host, ':');
-  port = default_port;
+  /* check for ipv6 */
+  if (strrchr (host, ':') != colon)
+    colon = NULL;
 
   if (colon)
     {
       *colon = '\0';
-      port = strtol (colon + 1, 0, 10);
     }
 
-  if (port)
-    {
-      struct addrinfo *addr, *i;
-      getaddrinfo (*host ? host : "localhost", 0, 0, &addr);
+  getaddrinfo (*host ? host : "localhost", colon ? colon + 1 : "7890",
+               0, &client->addresses);
 
-      for (i = addr; i; i = i->ai_next)
-        {
-          if (i->ai_family == PF_INET)
-            {
-              memcpy (&client->address, i->ai_addr, sizeof (client->address));
-              client->address.sin_port = htons (port);
-              success = 1;
-              break;
-            }
-        }
-
-      freeaddrinfo (addr);
-    }
+  if (client->addresses)
+    success = 1;
 
   free (host);
   if (!success)
@@ -72,12 +59,37 @@ int
 opc_client_connect (OpcClient *client)
 {
   int flag;
+  struct addrinfo *info;
 
-  client->fd = socket (PF_INET, SOCK_STREAM, IPPROTO_TCP);
+  for (info = client->addresses; info; info = info->ai_next)
+    {
+      client->fd = socket (info->ai_family,
+                           info->ai_socktype,
+                           info->ai_protocol);
 
-  if (connect (client->fd,
-               (struct sockaddr *) &client->address,
-               sizeof (client->address)) < 0)
+      if (client->fd >= 0)
+        {
+          if (connect (client->fd,
+                       info->ai_addr,
+                       info->ai_addrlen) < 0)
+            {
+              perror ("connect");
+            }
+          else
+            {
+              break;
+            }
+
+          close (client->fd);
+          client->fd = -1;
+        }
+      else
+        {
+          perror ("socket");
+        }
+    }
+
+  if (client->fd < 0)
     {
       opc_client_shutdown (client);
       return 0;
@@ -105,7 +117,7 @@ opc_client_write (OpcClient *client,
   uint8_t *buffer;
   uint8_t *data;
   int i;
- 
+
   if (client->fd < 0)
     return 0;
 
@@ -130,6 +142,7 @@ opc_client_write (OpcClient *client,
       res = send (client->fd, data, length, 0);
       if (res < 0)
         {
+          perror ("send");
           opc_client_shutdown (client);
           return 0;
         }
@@ -151,6 +164,9 @@ opc_client_shutdown (OpcClient *client)
       close (client->fd);
       client->fd = -1;
     }
+
+  if (client->addresses)
+    freeaddrinfo (client->addresses);
 }
 
 
