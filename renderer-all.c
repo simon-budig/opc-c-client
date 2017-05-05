@@ -9,6 +9,10 @@
 #include "opc-client.h"
 #include "render-utils.h"
 
+#include <fcntl.h>
+#include <poll.h>
+#include <linux/joystick.h>
+
 #include "renderer_astern.h"
 #include "renderer_ball.h"
 #include "renderer_pong.h"
@@ -372,6 +376,11 @@ main (int   argc,
   OpcClient *client;
   int mode = 0;
   int have_flip = 0;
+  int input_fd = -1;
+  struct pollfd pfd;
+  double joy_x, joy_y, joy_active;
+  double last_js_test = 0;
+
   RenderFunc modeptrs[] =
     {
       // mode_astern,
@@ -419,37 +428,98 @@ main (int   argc,
       gettimeofday (&tv, NULL);
       t = tv.tv_sec * 1.0 + tv.tv_usec / 1000000.0;
 
+      if (input_fd < 0 && t - last_js_test > 5)
+        {
+          input_fd = open ("/dev/input/js0", O_RDONLY);
+
+          last_js_test = t;
+          pfd.events = POLLIN;
+          pfd.fd = input_fd;
+          if (input_fd <= 0)
+            joy_active = 0;
+        }
+
+      while (input_fd >= 0 && poll (&pfd, 1, 0) > 0)
+        {
+          struct js_event e;
+
+          if (pfd.revents & POLLIN &&
+              read (input_fd, &e, sizeof (e)) > 0)
+            {
+              switch ((e.type & 0x03) * 256 + e.number)
+                {
+                  case 0x0200:
+                    /* Sidewinder Y */
+                    joy_y = - CLAMP (((float) e.value) / 23000.0, -1.0, 1.0);
+                    break;
+                  case 0x0201:
+                    /* Sidewinder X */
+                    joy_x = CLAMP (((float) e.value) / 23000.0, -1.0, 1.0);
+                    break;
+                  case 0x0203:
+                    /* Y */
+                    joy_y = CLAMP (((float) e.value) / 23000.0, -1.0, 1.0);
+                    break;
+                  case 0x0204:
+                    /* X */
+                    joy_x = - CLAMP (((float) e.value) / 23000.0, -1.0, 1.0);
+                    break;
+                  case 0x010e:
+                    fprintf (stderr, "%d\n", e.value);
+                    joy_active = !e.value;
+                    break;
+                  default:
+                    // fprintf (stderr, "event: %04x\n", (e.type & 0x03) * 256 + e.number);
+                    break;
+                }
+            }
+          else
+            {
+              close (input_fd);
+              last_js_test = t;
+              input_fd = -1;
+            }
+        }
+
       dt = fmod (t, EFFECT_TIME);
 
-      if (dt < 1.0)
+      if (!joy_active)
         {
-          if (have_flip == 1)
+          if (dt < 1.0)
             {
-              memset (effect2, 0, sizeof (double) * 8 * 8 * 8 * 3);
-              have_flip = 0;
+              if (have_flip == 1)
+                {
+                  memset (effect2, 0, sizeof (double) * 8 * 8 * 8 * 3);
+                  have_flip = 0;
+                }
+
+              modeptrs[(mode + 0) % num_modes] (effect1, t);
+              modeptrs[(mode + 1) % num_modes] (effect2, t);
+
+              framebuffer_merge (framebuffer, effect1, effect2, dt);
             }
+          else
+            {
+              if (have_flip == 0)
+                {
+                  double *tmp;
 
-          modeptrs[(mode + 0) % num_modes] (effect1, t);
-          modeptrs[(mode + 1) % num_modes] (effect2, t);
+                  tmp = effect1;
+                  effect1 = effect2;
+                  effect2 = tmp;
+                  mode += 1;
+                  mode %= num_modes;
 
-          framebuffer_merge (framebuffer, effect1, effect2, dt);
+                  have_flip = 1;
+                }
+
+              modeptrs[(mode + 0) % num_modes] (effect1, t);
+              framebuffer_merge (framebuffer, effect1, effect2, 0.0);
+            }
         }
       else
         {
-          if (have_flip == 0)
-            {
-              double *tmp;
-
-              tmp = effect1;
-              effect1 = effect2;
-              effect2 = tmp;
-              mode += 1;
-              mode %= num_modes;
-
-              have_flip = 1;
-            }
-
-          modeptrs[(mode + 0) % num_modes] (effect1, t);
+          render_pong (t, effect1, joy_x, joy_y);
           framebuffer_merge (framebuffer, effect1, effect2, 0.0);
         }
 
