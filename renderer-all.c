@@ -11,6 +11,7 @@
 
 #include "renderer_astern.h"
 #include "renderer_ball.h"
+#include "renderer_pong.h"
 
 #define EFFECT_TIME 30.0
 
