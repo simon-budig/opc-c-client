@@ -276,6 +276,7 @@ read_png_file (char    *file_name,
     {
       fprintf (stderr, "File %s is not recognized as a PNG file\n",
                file_name);
+      fclose (fp);
       return -EINVAL;
     }
 
@@ -285,6 +286,7 @@ read_png_file (char    *file_name,
   if (!png_ptr)
     {
       fprintf (stderr, "png_create_read_struct failed\n");
+      fclose (fp);
       return -ENOMEM;
     }
 
@@ -292,12 +294,14 @@ read_png_file (char    *file_name,
   if (!info_ptr)
     {
       fprintf (stderr, "png_create_info_struct failed\n");
+      fclose (fp);
       return -ENOMEM;
     }
 
   if (setjmp (png_jmpbuf (png_ptr)))
     {
       fprintf (stderr, "Error during init_io\n");
+      fclose (fp);
       return -ENOMEM;
     }
 
@@ -314,6 +318,7 @@ read_png_file (char    *file_name,
   if (color_type != PNG_COLOR_TYPE_RGB || bit_depth != 8)
     {
       fprintf (stderr, "wrong PNG type\n");
+      fclose (fp);
       return -EINVAL;
     }
 
@@ -324,6 +329,7 @@ read_png_file (char    *file_name,
   if (setjmp (png_jmpbuf (png_ptr)))
     {
       fprintf (stderr, "Error during read_image\n");
+      fclose (fp);
       return -EIO;
     }
 
@@ -358,6 +364,8 @@ read_png_file (char    *file_name,
     }
 
   free (pngpixels);
+
+  png_destroy_read_struct (&png_ptr, &info_ptr, NULL);
 
   *ret_width = width;
   *ret_height = height;
