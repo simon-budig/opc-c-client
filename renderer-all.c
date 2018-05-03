@@ -442,6 +442,7 @@ main (int   argc,
       while (input_fd >= 0 && poll (&pfd, 1, 0) > 0)
         {
           struct js_event e;
+          int ret;
 
           if (pfd.revents & POLLIN &&
               read (input_fd, &e, sizeof (e)) > 0)
@@ -478,6 +479,8 @@ main (int   argc,
               close (input_fd);
               last_js_test = t;
               input_fd = -1;
+              joy_active = 0;
+              fprintf (stderr, "lost js\n");
             }
         }
 
